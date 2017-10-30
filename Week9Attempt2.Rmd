@@ -1,0 +1,121 @@
+---
+title: "Week 9 - Working with Web APIs"
+author: "Emilie M Bolduc"
+date: "10/29/2017"
+output: html_document
+---
+
+### Assignment
+The New York Times web site provides a rich set of APIs, as described here: http://developer.nytimes.com/docs
+
+You’ll need to start by signing up for an API key.
+
+Your task is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and transform it to an R dataframe.
+
+### Solution 
+
+#### Libraries
+```{r results='hide', message=FALSE, warning=FALSE}
+library(jsonlite)
+library(DT)
+library(tidyr)
+library(dplyr)
+```
+
+#### Access NY Times API Data
+
+Get API key from NY Times:
+```{r API key}
+key <- "&api-key=2989168319214883a9a2a5e3d5713d88"
+```
+
+NY Times API used: (/lists/best-sellers/history.json)
+```{r NY Times API url}
+url <- "https://api.nytimes.com/svc/books/v3/lists/best-sellers/history.json?age-group=4"
+```
+
+I want to query the bestseller books for 4-year-olds. I tried to include the AgeGroup value in the fromJSON function below, but kept getting error messages. Eventually had to manually add it to the url above to get it work.
+```{r Age Group}
+AgeGroup <- "?age-group=4"
+```
+
+Use jsonlite [fromJSON] function to get the API data with API key and query for kids books from NY Times:
+```{r Access data from API}
+rawdata <- fromJSON(paste0(url, key))
+```
+Reference: https://cran.r-project.org/web/packages/jsonlite/vignettes/json-apis.html
+
+Confirm it worked:
+```{r Raw}
+head(rawdata)
+```
+Yay!
+
+#### Review raw data
+What class are we dealing with:
+```{r Class}
+class(rawdata) 
+```
+
+How many elements?
+```{r}
+length(rawdata)
+```
+
+Names?
+```{r}
+names(rawdata)
+```
+
+Class of each element?
+```{r}
+lapply(rawdata, class)
+```
+
+How many elements in each list component?
+```{r}
+lapply(rawdata, length)
+```
+
+
+#### Clean the data before transforming into dataframe
+Remove the first 3 lists ("status", "copyright", "num_results"):
+```{r}
+results <- rawdata[-c(1:3)]
+names(results)
+length(results)
+class(results)
+```
+
+#### Turn into a dataframe
+```{r}
+results_df <- results[["results"]]
+```
+Confirm:
+```{r}
+class(results_df)
+```
+Yay!
+
+
+#### Tidy data with [dpylr] and [tidyr] packages
+```{r}
+colnames(results_df)
+kidsbooks <- tbl_df(results_df)
+kidsbooks <- select(kidsbooks, one_of(c("title", "description", "author", "price", "age_group")))
+kidsbooks <- rename(kidsbooks, Title = 'title', Description = 'description', Author = 'author', Price = 'price', Ages = 'age_group')
+kidsbooks
+```
+
+
+
+#### Make a Pretty Table
+```{r}
+datatable(kidsbooks)
+```
+
+
+
+
+
+
